@@ -59,6 +59,15 @@ public class GoapState
 public struct WorldState
 {
     public int playerHP;
+    public bool cercaDeItem;//true
+    public int espacioDeInventario;//1
+    public int energia;//15
+    public bool enRangoDeAtaque;//false
+    public string tieneArmaEquipada;//none
+    public bool tenerPocionDeCuracion;//false
+    public bool enCombate;//flase
+    public bool enUbicacionDeLaMision;//faalse
+    public bool misionCompletada;//false
     public Dictionary<string, bool> values; //Eliminar y utilizar todas las variables como playerHP
 
     //MUY IMPORTANTE TENER UN CLONE PARA NO TENER REFENCIAS A LO VIEJO
