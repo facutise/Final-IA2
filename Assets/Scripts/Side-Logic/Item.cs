@@ -9,6 +9,9 @@ public enum ItemType
 	Entity,
 	Mace,
 	PastaFrola,
+	pocion,
+	cuchillo,
+
 }
 
 public class Item : MonoBehaviour

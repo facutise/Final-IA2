@@ -76,6 +76,16 @@ public struct WorldState
         return new WorldState()
         {
             playerHP = this.playerHP,
+            cercaDeItem = this.cercaDeItem,
+            espacioDeInventario = this.espacioDeInventario, 
+            energia = this.energia,
+            enRangoDeAtaque = this.enRangoDeAtaque,
+            tieneArmaEquipada = this.tieneArmaEquipada,
+            tenerPocionDeCuracion = this.tenerPocionDeCuracion,
+            enCombate = this.enCombate,
+            enUbicacionDeLaMision = this.enUbicacionDeLaMision,
+            misionCompletada = this.misionCompletada,
+
             values = this.values.ToDictionary(kv => kv.Key, kv => kv.Value) //Eliminar!!
         };
     }
