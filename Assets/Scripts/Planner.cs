@@ -96,11 +96,15 @@ public class Planner : MonoBehaviour
         Func<GoapState, float> heuristic = (curr) =>
         {
             int count = 0;
-            string key = "has" + ItemType.PastaFrola.ToString();
+            /*string key = "has" + ItemType.PastaFrola.ToString();
             if (!curr.worldState.values.ContainsKey(key) || !curr.worldState.values[key])
                 count++;
             if (curr.worldState.playerHP <= 45)
+                count++;*/
+            if (curr.worldState.misionCompletada =! true)// Creo, no estoy seguro
+            {
                 count++;
+            }
             return count;
         };
 
