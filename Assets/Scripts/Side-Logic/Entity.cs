@@ -4,12 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using Random = UnityEngine.Random;
+using TMPro;
 
 
 public class Entity : MonoBehaviour
 {
     #region VARIABLES
-    public TextMesh lblNumber, lblId;
+    public TextMeshPro lblNumber, lblId;
 	public Transform body, inventory;
 	public string initialId;
 	public Color initialColor;

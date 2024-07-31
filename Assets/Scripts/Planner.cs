@@ -44,11 +44,13 @@ public class Planner : MonoBehaviour
         var everything = nav.AllItems().Union(nav.AllInventories());// .Union() une 2 colecciones sin agregar duplicados(eso incluye duplicados en la misma coleccion)
 
         //Chequeo los booleanos para cada Item, generando mi modelo de mundo (mi diccionario de bools) en ObservedState
+        //Facu: Estos Check buscan los objetos en el mundo y se lo "asignan"/"conecta" al nodo más cercano
         Check(observedState, ItemType.Key);
         Check(observedState, ItemType.Entity);
         Check(observedState, ItemType.Mace);
         Check(observedState, ItemType.PastaFrola);
         Check(observedState, ItemType.Door);
+        Check(observedState, ItemType.pocion);
         #endregion
 
         GoapState initial = new GoapState(); //Crear GoapState
@@ -66,28 +68,29 @@ public class Planner : MonoBehaviour
             enUbicacionDeLaMision = false,
             misionCompletada = false,
 
-            values = new Dictionary<string, bool>() //Eliminar!
+            /*values = new Dictionary<string, bool>()*/ //Eliminar!
         };
 
 
         //Si uso items modulares:
-        initial.worldState.values = observedState; //le asigno los valores actuales, conseguidos antes
-        initial.worldState.values["doorOpen"] = false; //agrego el bool "doorOpen"
+        /*initial.worldState.values = observedState; */ //le asigno los valores actuales, conseguidos antes
+        /*initial.worldState.values["doorOpen"] = false;*/ //agrego el bool "doorOpen"
 
         //Calculo las acciones
         var actions = CreatePossibleActionsList();
 
         #region opcional
-        foreach (var item in initial.worldState.values)
+        /*foreach (var item in initial.worldState.values)
         {
             Debug.Log(item.Key + " ---> " + item.Value);
-        }
+        }*/
         #endregion
 
         //Es opcional, no es necesario buscar por un nodo que cumpla perfectamente con las condiciones
         GoapState goal = new GoapState();
         //goal.values["has" + ItemType.Key.ToString()] = true;
-        goal.worldState.values["has" + ItemType.PastaFrola.ToString()] = true;
+        /*goal.worldState.values["has" + ItemType.PastaFrola.ToString()] = true;*/
+        goal.worldState.misionCompletada= true;
         //goal.values["has"+ ItemType.Mace.ToString()] = true;
         //goal.values["dead" + ItemType.Entity.ToString()] = true;}
 
@@ -217,7 +220,8 @@ public class Planner : MonoBehaviour
                 )
 
                 , new GoapAction("Correr")
-                .SetCost(6f)
+                .SetCost(1f)
+                .SetItem (ItemType.PastaFrola)
                 .Pre((gS)=>
                 {
 
@@ -227,7 +231,7 @@ public class Planner : MonoBehaviour
                 .Effect((gS) =>
                     {
 
-                       gS.worldState.enUbicacionDeLaMision=true; gS.worldState.energia-=15;
+                       gS.worldState.enUbicacionDeLaMision=true; gS.worldState.energia-=15; gS.worldState.misionCompletada=true;
                         return gS;
                     }
                 )

@@ -33,7 +33,7 @@ public class GoapAction
         {
             foreach (var item in effects)
             {
-                s.worldState.values[item.Key] = item.Value;
+                /*s.worldState.values[item.Key] = item.Value;*/
             }
             return s;
         };

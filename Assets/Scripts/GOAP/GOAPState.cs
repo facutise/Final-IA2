@@ -15,7 +15,7 @@ public class GoapState
         generatingAction = gen;
         worldState = new WorldState()
         {
-            values = new Dictionary<string, bool>() // Muy importane inicializarlo en este caso
+            /*values = new Dictionary<string, bool>()*/ // Muy importane inicializarlo en este caso
         };
     }
 
@@ -26,7 +26,7 @@ public class GoapState
     }
     #endregion
 
-
+    /*
     public override bool Equals(object obj)
     {
         var result =
@@ -35,13 +35,14 @@ public class GoapState
             && other.worldState.values.Count == worldState.values.Count
             && other.worldState.values.All(kv => kv.In(worldState.values));
         return result;
-    }
+    }*/
 
+    /*
     public override int GetHashCode()
     {
         return worldState.values.Count == 0 ? 0 : 31 * worldState.values.Count + 31 * 31 * worldState.values.First().GetHashCode();
-    }
-
+    }*/
+    /*
     public override string ToString()
     {
         var str = "";
@@ -50,7 +51,7 @@ public class GoapState
             str += (string.Format("{0:12} : {1}\n", kv.Key, kv.Value));
         }
         return ("--->" + (generatingAction != null ? generatingAction.Name : "NULL") + "\n" + str);
-    }
+    }*/
 }
 
 
@@ -68,7 +69,7 @@ public struct WorldState
     public bool enCombate;//flase
     public bool enUbicacionDeLaMision;//faalse
     public bool misionCompletada;//false
-    public Dictionary<string, bool> values; //Eliminar y utilizar todas las variables como playerHP
+   // public Dictionary<string, bool> values; //Eliminar y utilizar todas las variables como playerHP
 
     //MUY IMPORTANTE TENER UN CLONE PARA NO TENER REFENCIAS A LO VIEJO
     public WorldState Clone()
@@ -86,7 +87,7 @@ public struct WorldState
             enUbicacionDeLaMision = this.enUbicacionDeLaMision,
             misionCompletada = this.misionCompletada,
 
-            values = this.values.ToDictionary(kv => kv.Key, kv => kv.Value) //Eliminar!!
+            //values = this.values.ToDictionary(kv => kv.Key, kv => kv.Value) //Eliminar!!
         };
     }
 }
