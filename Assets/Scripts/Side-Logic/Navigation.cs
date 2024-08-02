@@ -81,4 +81,23 @@ public class Navigation : MonoBehaviour
 			})
 			.First();
 	}
+    
+
+  
+
+    public void TryReach(Transform agent, Vector3 target, Action<bool> callback)
+    {
+        // Example of moving directly towards target; replace with actual pathfinding
+        StartCoroutine(MoveTo(agent, target, callback));
+    }
+
+    private IEnumerator MoveTo(Transform agent, Vector3 target, Action<bool> callback)
+    {
+        while (Vector3.Distance(agent.position, target) > 0.1f)
+        {
+            agent.position = Vector3.MoveTowards(agent.position, target, Time.deltaTime * 2f); // Adjust speed as needed
+            yield return null;
+        }
+        callback(true);
+    }
 }
