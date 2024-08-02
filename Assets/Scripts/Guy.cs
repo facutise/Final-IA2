@@ -7,12 +7,13 @@ using IA2;
 
 public enum ActionEntity
 {
-	Kill,
+    Kill,
     PickUp,
-	NextStep,
-	FailedStep,
-	Open,
-	Success
+    NextStep,
+    FailedStep,
+    Open,
+    Success,
+    MoveToPastaFrola, // Nueva acción
 }
 
 public class Guy : MonoBehaviour
@@ -144,7 +145,7 @@ public class Guy : MonoBehaviour
     private IEnumerable<Tuple<ActionEntity, Item>> _plan;
     public ParticleSystem particlePrefab;
 
-    private void PerformAction(Entity us, Item other, ActionEntity action)
+    /*private void PerformAction(Entity us, Item other, ActionEntity action)
     {
         if (other != _target) return;
 
@@ -159,6 +160,29 @@ public class Guy : MonoBehaviour
                 break;
             case ActionEntity.Open:
                 PerformOpen(us, other);
+                break;
+            default:
+                _fsm.Feed(ActionEntity.FailedStep);
+                break;
+        }
+    }*/
+    private void PerformAction(Entity us, Item other, ActionEntity action)
+    {
+        if (other != _target) return;
+
+        switch (action)
+        {
+            case ActionEntity.Kill:
+                PerformKill(us, other);
+                break;
+            case ActionEntity.PickUp:
+                PerformPickUp(us, other);
+                break;
+            case ActionEntity.Open:
+                PerformOpen(us, other);
+                break;
+            case ActionEntity.MoveToPastaFrola: // Nueva acción
+                MoveToPastaFrola(us, other);
                 break;
             default:
                 _fsm.Feed(ActionEntity.FailedStep);
@@ -240,7 +264,7 @@ public class Guy : MonoBehaviour
         _fsm.Feed(ActionEntity.NextStep);
     }*/
 
-    private void NextStep()
+    public void NextStep()
     {
         if (_plan == null || !_plan.Any())
         {
@@ -282,11 +306,14 @@ public class Guy : MonoBehaviour
             .Done();
 
         StateConfigurer.Create(bridgeStep)
+            
             .SetTransition(ActionEntity.Kill, kill)
             .SetTransition(ActionEntity.PickUp, pickup)
             .SetTransition(ActionEntity.Open, open)
             .SetTransition(ActionEntity.FailedStep, failStep)
             .Done();
+            
+
 
         StateConfigurer.Create(kill)
             .SetTransition(ActionEntity.NextStep, idle)
@@ -308,6 +335,9 @@ public class Guy : MonoBehaviour
             .Done();
 
         _fsm = new EventFSM<ActionEntity>(idle);
+
+        bridgeStep.OnEnter += (input) => NextStep();
+
     }
 
     public void ExecutePlan(IEnumerable<Tuple<ActionEntity, Item>> plan)
