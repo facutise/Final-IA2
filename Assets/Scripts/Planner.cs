@@ -327,6 +327,7 @@ public class Planner : MonoBehaviour
         {
             return curr.worldState.misionCompletada;
         };
+        /*
 
         var plan = Goap.Execute(initial, null, objective, heuristic, actions);
 
@@ -358,6 +359,42 @@ public class Planner : MonoBehaviour
                     }
                 }).Where(a => a != null).ToList()
             );
+        }*/
+        var plan = Goap.Execute(initial, null, objective, heuristic, actions);
+
+        if (plan == null)
+            Debug.Log("Couldn't plan");
+        else
+        {
+            Debug.Log("Plan generated successfully");
+            foreach (var action in plan)
+            {
+                Debug.Log("Action: " + action.Name);
+            }
+
+            var actDict = new Dictionary<string, ActionEntity>
+    {
+        { "Recoger Item/ cuchillo", ActionEntity.PickUp },
+        { "Atacar", ActionEntity.Kill },
+        { "Curarse", ActionEntity.Success },
+        { "Correr", ActionEntity.Success },
+        { "Lootear", ActionEntity.PickUp }
+    };
+
+            GetComponent<Guy>().ExecutePlan(
+                plan.Select(a =>
+                {
+                    Item i2 = everything.FirstOrDefault(i => i.type == a.item);
+                    if (actDict.ContainsKey(a.Name) && i2 != null)
+                    {
+                        return Tuple.Create(actDict[a.Name], i2);
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }).Where(a => a != null).ToList()
+            );
         }
     }
 
@@ -368,7 +405,7 @@ public class Planner : MonoBehaviour
             new GoapAction("Recoger Item/ cuchillo")
                 .SetCost(2f)
                 .SetItem(ItemType.Key)
-                .Pre(gS => gS.worldState.playerHP > 50 && gS.worldState.cercaDeItem && gS.worldState.espacioDeInventario > 0 && gS.worldState.energia > 0)
+                .Pre(gS => gS.worldState.playerHP > 50 )
                 .Effect(gS =>
                 {
                     gS.worldState.espacioDeInventario += 1;
@@ -379,7 +416,7 @@ public class Planner : MonoBehaviour
             new GoapAction("Atacar")
                 .SetCost(5f)
                 .SetItem(ItemType.Mace)
-                .Pre(gS => gS.worldState.tieneArmaEquipada == "Cuchillo" && gS.worldState.enRangoDeAtaque && gS.worldState.playerHP > 5)
+                .Pre(gS => /*gS.worldState.tieneArmaEquipada == "Cuchillo" && gS.worldState.enRangoDeAtaque &&*/ gS.worldState.playerHP > 5)
                 .Effect(gS =>
                 {
                     gS.worldState.playerHP -= 4;
@@ -389,7 +426,7 @@ public class Planner : MonoBehaviour
             new GoapAction("Curarse")
                 .SetCost(3f)
                 .SetItem(ItemType.Pocion)
-                .Pre(gS => !gS.worldState.enCombate && gS.worldState.tenerPocionDeCuracion && gS.worldState.playerHP < 10)
+                .Pre(gS => /*!gS.worldState.enCombate && gS.worldState.tenerPocionDeCuracion && */gS.worldState.playerHP < 10)
                 .Effect(gS =>
                 {
                     gS.worldState.playerHP += 4;
@@ -397,9 +434,9 @@ public class Planner : MonoBehaviour
                     return gS;
                 }),
             new GoapAction("Correr")
-                .SetCost(1f)
+                .SetCost(4f)
                 .SetItem(ItemType.PastaFrola)
-                .Pre(gS => !gS.worldState.enUbicacionDeLaMision && !gS.worldState.enCombate && gS.worldState.energia >= 15)
+                .Pre(gS => gS.worldState.enUbicacionDeLaMision/* && !gS.worldState.enCombate && gS.worldState.energia >= 15*/)
                 .Effect(gS =>
                 {
                     gS.worldState.enUbicacionDeLaMision = true;
@@ -408,13 +445,14 @@ public class Planner : MonoBehaviour
                     return gS;
                 }),
             new GoapAction("Lootear")
-                .SetCost(2f)
-                .Pre(gS => !gS.worldState.tenerPocionDeCuracion && gS.worldState.espacioDeInventario >= 5 && gS.worldState.energia >= 2)
+                .SetCost(1f)
+                .Pre(gS => /*!gS.worldState.tenerPocionDeCuracion && gS.worldState.espacioDeInventario >= 5 && */gS.worldState.energia >= 2)
                 .Effect(gS =>
                 {
                     gS.worldState.espacioDeInventario -= 5;
                     gS.worldState.energia -= 2;
                     gS.worldState.tenerPocionDeCuracion = true;
+                    gS.worldState.enUbicacionDeLaMision=true;
                     return gS;
                 })
         };

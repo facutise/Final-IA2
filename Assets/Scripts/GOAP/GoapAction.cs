@@ -26,15 +26,16 @@ public class GoapAction
         this.Name = name;
         Cost = 1f;
         preconditions = new Dictionary<string, bool>();
+        Preconditions = delegate { return true; };//FACU PROBANDO
         effects = new Dictionary<string, bool>();
 
         //Para que funcione en la mezcla se hizo esto, pero se le podria settear a cada Action su propia logica de effect
         Effects = (s) =>
         {
-            foreach (var item in effects)
+            /*foreach (var item in effects)
             {
-                /*s.worldState.values[item.Key] = item.Value;*/
-            }
+                s.worldState.values[item.Key] = item.Value;
+            }*/
             return s;
         };
     }

@@ -142,6 +142,7 @@ public class Guy : MonoBehaviour
     private Item _target;
     private Entity _ent;
     private IEnumerable<Tuple<ActionEntity, Item>> _plan;
+    public ParticleSystem particlePrefab;
 
     private void PerformAction(Entity us, Item other, ActionEntity action)
     {
@@ -154,6 +155,7 @@ public class Guy : MonoBehaviour
                 break;
             case ActionEntity.PickUp:
                 PerformPickUp(us, other);
+                //MoveToPastaFrola(us, other);
                 break;
             case ActionEntity.Open:
                 PerformOpen(us, other);
@@ -163,6 +165,46 @@ public class Guy : MonoBehaviour
                 break;
         }
     }
+
+    private void PerformPickUp(Entity us, Item other)
+    {
+        _ent.AddItem(other);
+        _fsm.Feed(ActionEntity.NextStep);
+
+        // Ejecutar partículas al lootear
+        SpawnLootParticles(other.transform.position);
+    }
+
+    private void SpawnLootParticles(Vector3 position)
+    {
+        // Aquí se podría instanciar un sistema de partículas predefinido
+        var particles = Instantiate(particlePrefab, position, Quaternion.identity);
+        particles.Play();
+    }
+
+    private void MoveToPastaFrola(Entity us, Item other)
+    {
+        if (other.type != ItemType.PastaFrola) return;
+
+        Navigation.instance.TryReach(
+            transform,
+            other.transform.position,
+            (success) =>
+            {
+                if (success)
+                {
+                    Debug.Log("Reached PastaFrola using A*");
+                    // Aquí puedes añadir más lógica si es necesario
+                    _fsm.Feed(ActionEntity.NextStep);
+                }
+                else
+                {
+                    _fsm.Feed(ActionEntity.FailedStep);
+                }
+            }
+        );
+    }
+
 
     private void PerformKill(Entity us, Item other)
     {
@@ -191,12 +233,12 @@ public class Guy : MonoBehaviour
         else
             _fsm.Feed(ActionEntity.FailedStep);
     }
-
+    /*
     private void PerformPickUp(Entity us, Item other)
     {
         _ent.AddItem(other);
         _fsm.Feed(ActionEntity.NextStep);
-    }
+    }*/
 
     private void NextStep()
     {

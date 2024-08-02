@@ -9,7 +9,8 @@ using TMPro;
 
 public class Entity : MonoBehaviour
 {
-    /*#region VARIABLES
+    /*
+    #region VARIABLES
     public TextMeshPro lblNumber, lblId;
     public Transform body, inventory;
     public string initialId;
@@ -258,8 +259,8 @@ public class Entity : MonoBehaviour
         }
         if (_gizmoRealTarget != null)
             Gizmos.DrawCube(_gizmoRealTarget.transform.position + Vector3.up * 1f, Vector3.one * 0.3f);
-    }*/
-
+    }
+    */
     public List<Item> items = new List<Item>();
 
     public void AddItem(Item item)
