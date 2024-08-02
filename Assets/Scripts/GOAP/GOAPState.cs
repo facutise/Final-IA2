@@ -26,32 +26,7 @@ public class GoapState
     }
     #endregion
 
-    /*
-    public override bool Equals(object obj)
-    {
-        var result =
-            obj is GoapState other
-            && other.generatingAction == generatingAction  
-            && other.worldState.values.Count == worldState.values.Count
-            && other.worldState.values.All(kv => kv.In(worldState.values));
-        return result;
-    }*/
-
-    /*
-    public override int GetHashCode()
-    {
-        return worldState.values.Count == 0 ? 0 : 31 * worldState.values.Count + 31 * 31 * worldState.values.First().GetHashCode();
-    }*/
-    /*
-    public override string ToString()
-    {
-        var str = "";
-        foreach (var kv in worldState.values.OrderBy(x => x.Key))
-        {
-            str += (string.Format("{0:12} : {1}\n", kv.Key, kv.Value));
-        }
-        return ("--->" + (generatingAction != null ? generatingAction.Name : "NULL") + "\n" + str);
-    }*/
+   
 }
 
 
@@ -59,7 +34,7 @@ public class GoapState
 //Aca hay una mezcla de lo  anterior con lo nuevo, no necesariamente tiene que haber un diccionario aca adentro
 public struct WorldState
 {
-    public int playerHP;
+    public float playerHP;
     public bool cercaDeItem;//true
     public int espacioDeInventario;//1
     public int energia;//15

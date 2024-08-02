@@ -6,19 +6,270 @@ using System;
 
 public class Planner : MonoBehaviour
 {
+    /* private readonly List<Tuple<Vector3, Vector3>> _debugRayList = new List<Tuple<Vector3, Vector3>>();
+
+     private void Start()
+     {
+         StartCoroutine(Plan());
+     }
+
+     private void Check(Dictionary<string, bool> state, ItemType type)
+     {
+
+         var items = Navigation.instance.AllItems();
+         var inventories = Navigation.instance.AllInventories();
+         var floorItems = items.Except(inventories);//devuelve una coleccion como la primera pero removiendo los que estan en la segunda
+         var item = floorItems.FirstOrDefault(x => x.type == type);
+         var here = transform.position;
+         state["accessible" + type.ToString()] = item != null && Navigation.instance.Reachable(here, item.transform.position, _debugRayList);
+
+         var inv = inventories.Any(x => x.type == type);
+         state["otherHas" + type.ToString()] = inv;
+
+         state["dead" + type.ToString()] = false;
+     }
+
+     //No es necesario que sea una corrutina excepto que se calcule GOAP con timeslicing.
+     private IEnumerator Plan()
+     {
+         yield return new WaitForSeconds(0.2f);
+
+
+         #region Si no se usan objetos modulares, se puede eliminar
+         var observedState = new Dictionary<string, bool>();
+
+         var nav = Navigation.instance;//Consigo los items
+         var floorItems = nav.AllItems();
+         var inventory = nav.AllInventories();
+         var everything = nav.AllItems().Union(nav.AllInventories());// .Union() une 2 colecciones sin agregar duplicados(eso incluye duplicados en la misma coleccion)
+
+         //Chequeo los booleanos para cada Item, generando mi modelo de mundo (mi diccionario de bools) en ObservedState
+         //Facu: Estos Check buscan los objetos en el mundo y se lo "asignan"/"conecta" al nodo más cercano
+         Check(observedState, ItemType.Key);
+         Check(observedState, ItemType.Entity);
+         Check(observedState, ItemType.Mace);
+         Check(observedState, ItemType.PastaFrola);
+         Check(observedState, ItemType.Door);
+         Check(observedState, ItemType.pocion);
+         #endregion
+
+         GoapState initial = new GoapState(); //Crear GoapState
+         initial.worldState = new WorldState()
+         {
+
+             playerHP = 88,
+             cercaDeItem = true,
+             espacioDeInventario = 1,
+             energia = 15,
+             enRangoDeAtaque = false,
+             tieneArmaEquipada = "none",
+             tenerPocionDeCuracion = false,
+             enCombate = false,
+             enUbicacionDeLaMision = false,
+             misionCompletada = false,
+
+
+         };
+
+
+         //Si uso items modulares:
+         //initial.worldState.values = observedState;  //le asigno los valores actuales, conseguidos antes
+         //initial.worldState.values["doorOpen"] = false; //agrego el bool "doorOpen"
+
+         //Calculo las acciones
+         var actions = CreatePossibleActionsList();
+
+         #region opcional
+
+         #endregion
+
+         //Es opcional, no es necesario buscar por un nodo que cumpla perfectamente con las condiciones
+         GoapState goal = new GoapState();
+
+         goal.worldState.misionCompletada= true;
+
+
+         //Crear la heuristica personalizada para no calcular nodos de mas
+         Func<GoapState, float> heuristic = (curr) =>
+         {
+             int count = 0;
+
+             if (curr.worldState.misionCompletada =! true)// Creo, no estoy seguro
+             {
+                 count++;
+             }
+             return count;
+         };
+
+         //Esto seria el reemplazo de goal, donde se pide que cumpla con las condiciones pasadas.
+         Func<GoapState, bool> objective = (curr) =>
+          {
+
+              return curr.worldState.misionCompletada = true;
+          };
+
+         #region Opcional
+         var actDict = new Dictionary<string, ActionEntity>() {
+               { "Kill"  , ActionEntity.Kill }
+             , { "Pickup", ActionEntity.PickUp }
+             , { "Open"  , ActionEntity.Open }
+         };
+         #endregion
+
+         var plan = Goap.Execute(initial, null, objective, heuristic, actions);
+
+         if (plan == null)
+             Debug.Log("Couldn't plan");
+         else
+         {
+             GetComponent<Guy>().ExecutePlan(
+                 plan
+                 .Select(a =>
+                 {
+                     Item i2 = everything.FirstOrDefault(i => i.type == a.item);
+                     if (actDict.ContainsKey(a.Name) && i2 != null)
+                     {
+                         return Tuple.Create(actDict[a.Name], i2);
+                     }
+                     else
+                     {
+                         return null;
+                     }
+                 }).Where(a => a != null)
+                 .ToList()
+             );
+         }
+     }
+
+     private List<GoapAction> CreatePossibleActionsList()
+     {
+         return new List<GoapAction>()
+         {
+
+               new GoapAction("Recoger Item/ cuchillo")
+                 .SetCost(2f)
+                 .SetItem(ItemType.Key) 
+
+                 .Pre((gS)=>
+                 {
+
+                            return gS.worldState.playerHP > 50 && gS.worldState.cercaDeItem==true&&
+                     gS.worldState.espacioDeInventario>0&&gS.worldState.energia>0;
+                 })
+                 //Ejemplo de setteo de Effect
+                 .Effect((gS) =>
+                     {
+
+                        gS.worldState.espacioDeInventario+=1; gS.worldState.energia-=1;  gS.worldState.tieneArmaEquipada=("Cuchillo");
+                         return gS;
+                     }
+                 )
+                 , new GoapAction("Atacar")
+                 .SetCost(5f)
+                 .SetItem (ItemType.Mace)
+                 .Pre((gS)=>
+                 {
+
+                            return gS.worldState.tieneArmaEquipada==("Cuchillo") && gS.worldState.enRangoDeAtaque==true&&
+                     gS.worldState.playerHP>5;
+                 })
+                 .Effect((gS) =>
+                     {
+
+                        gS.worldState.playerHP-=4; gS.worldState.energia-=5;
+                         return gS;
+                     }
+                 )
+
+                 , new GoapAction("Curarse")
+                 .SetCost(3f)
+                 .SetItem (ItemType.pocion)
+                 .Pre((gS)=>
+                 {
+
+                            return gS.worldState.enCombate==false && gS.worldState.tenerPocionDeCuracion==true&&
+                     gS.worldState.playerHP<10;
+                 })
+                 .Effect((gS) =>
+                     {
+
+                        gS.worldState.playerHP+=4; gS.worldState.energia-=2;
+                         return gS;
+                     }
+                 )
+
+                 , new GoapAction("Correr")
+                 .SetCost(1f)
+                 .SetItem (ItemType.PastaFrola)
+                 .Pre((gS)=>
+                 {
+
+                            return gS.worldState.enUbicacionDeLaMision==false && gS.worldState.enCombate==false&&
+                     gS.worldState.energia>=15;
+                 })
+                 .Effect((gS) =>
+                     {
+
+                        gS.worldState.enUbicacionDeLaMision=true; gS.worldState.energia-=15; gS.worldState.misionCompletada=true;
+                         return gS;
+                     }
+                 )
+
+                 , new GoapAction("Lootear")
+                 .SetCost(2f)
+                 .Pre((gS)=>
+                 {
+
+                            return gS.worldState.tenerPocionDeCuracion==false && gS.worldState.espacioDeInventario>=5&&
+                     gS.worldState.energia>=2;
+                 })
+                 .Effect((gS) =>
+                     {
+
+                        gS.worldState.espacioDeInventario-=5; gS.worldState.energia-=2; ; gS.worldState.tenerPocionDeCuracion=true;
+                         return gS;
+                     }
+                 )
+
+
+         };
+     }
+
+     void OnDrawGizmos()
+     {
+         Gizmos.color = Color.cyan;
+         foreach (var t in _debugRayList)
+         {
+             Gizmos.DrawRay(t.Item1, (t.Item2 - t.Item1).normalized);
+             Gizmos.DrawCube(t.Item2 + Vector3.up, Vector3.one * 0.2f);
+         }
+     }*/
+
     private readonly List<Tuple<Vector3, Vector3>> _debugRayList = new List<Tuple<Vector3, Vector3>>();
+
+    private Dictionary<string, ActionEntity> actDict;
 
     private void Start()
     {
+        InitializeActionDictionary();
         StartCoroutine(Plan());
+    }
+
+    private void InitializeActionDictionary()
+    {
+        actDict = new Dictionary<string, ActionEntity>
+        {
+            { "Recoger Item", ActionEntity.PickUp },
+            { "Atacar", ActionEntity.Kill },
+            { "Curarse", ActionEntity.NextStep } // Supongo que "Curarse" debería tener su propio ActionEntity. Reemplaza ActionEntity.NextStep si es necesario.
+        };
     }
 
     private void Check(Dictionary<string, bool> state, ItemType type)
     {
-
         var items = Navigation.instance.AllItems();
         var inventories = Navigation.instance.AllInventories();
-        var floorItems = items.Except(inventories);//devuelve una coleccion como la primera pero removiendo los que estan en la segunda
+        var floorItems = items.Except(inventories);
         var item = floorItems.FirstOrDefault(x => x.type == type);
         var here = transform.position;
         state["accessible" + type.ToString()] = item != null && Navigation.instance.Reachable(here, item.transform.position, _debugRayList);
@@ -29,34 +280,27 @@ public class Planner : MonoBehaviour
         state["dead" + type.ToString()] = false;
     }
 
-    //No es necesario que sea una corrutina excepto que se calcule GOAP con timeslicing.
     private IEnumerator Plan()
     {
         yield return new WaitForSeconds(0.2f);
 
-
-        #region Si no se usan objetos modulares, se puede eliminar
         var observedState = new Dictionary<string, bool>();
 
-        var nav = Navigation.instance;//Consigo los items
+        var nav = Navigation.instance;
         var floorItems = nav.AllItems();
         var inventory = nav.AllInventories();
-        var everything = nav.AllItems().Union(nav.AllInventories());// .Union() une 2 colecciones sin agregar duplicados(eso incluye duplicados en la misma coleccion)
+        var everything = nav.AllItems().Union(nav.AllInventories());
 
-        //Chequeo los booleanos para cada Item, generando mi modelo de mundo (mi diccionario de bools) en ObservedState
-        //Facu: Estos Check buscan los objetos en el mundo y se lo "asignan"/"conecta" al nodo más cercano
         Check(observedState, ItemType.Key);
         Check(observedState, ItemType.Entity);
         Check(observedState, ItemType.Mace);
         Check(observedState, ItemType.PastaFrola);
         Check(observedState, ItemType.Door);
-        Check(observedState, ItemType.pocion);
-        #endregion
+        Check(observedState, ItemType.Pocion);
 
-        GoapState initial = new GoapState(); //Crear GoapState
+        GoapState initial = new GoapState();
         initial.worldState = new WorldState()
         {
-            
             playerHP = 88,
             cercaDeItem = true,
             espacioDeInventario = 1,
@@ -67,66 +311,27 @@ public class Planner : MonoBehaviour
             enCombate = false,
             enUbicacionDeLaMision = false,
             misionCompletada = false,
-
-            /*values = new Dictionary<string, bool>()*/ //Eliminar!
         };
 
-
-        //Si uso items modulares:
-        /*initial.worldState.values = observedState; */ //le asigno los valores actuales, conseguidos antes
-        /*initial.worldState.values["doorOpen"] = false;*/ //agrego el bool "doorOpen"
-
-        //Calculo las acciones
         var actions = CreatePossibleActionsList();
 
-        #region opcional
-        /*foreach (var item in initial.worldState.values)
-        {
-            Debug.Log(item.Key + " ---> " + item.Value);
-        }*/
-        #endregion
-
-        //Es opcional, no es necesario buscar por un nodo que cumpla perfectamente con las condiciones
         GoapState goal = new GoapState();
-        //goal.values["has" + ItemType.Key.ToString()] = true;
-        /*goal.worldState.values["has" + ItemType.PastaFrola.ToString()] = true;*/
-        goal.worldState.misionCompletada= true;
-        //goal.values["has"+ ItemType.Mace.ToString()] = true;
-        //goal.values["dead" + ItemType.Entity.ToString()] = true;}
+        goal.worldState.misionCompletada = true;
 
-
-        //Crear la heuristica personalizada para no calcular nodos de mas
         Func<GoapState, float> heuristic = (curr) =>
         {
             int count = 0;
-            /*string key = "has" + ItemType.PastaFrola.ToString();
-            if (!curr.worldState.values.ContainsKey(key) || !curr.worldState.values[key])
-                count++;
-            if (curr.worldState.playerHP <= 45)
-                count++;*/
-            if (curr.worldState.misionCompletada =! true)// Creo, no estoy seguro
+            if (!curr.worldState.misionCompletada)
             {
                 count++;
             }
             return count;
         };
 
-        //Esto seria el reemplazo de goal, donde se pide que cumpla con las condiciones pasadas.
         Func<GoapState, bool> objective = (curr) =>
-         {
-             /*string key = "has" + ItemType.PastaFrola.ToString();
-             return curr.worldState.values.ContainsKey(key) && curr.worldState.values["has" + ItemType.PastaFrola.ToString()]
-                    && curr.worldState.playerHP > 45;*/
-             return curr.worldState.misionCompletada = true;
-         };
-
-        #region Opcional
-        var actDict = new Dictionary<string, ActionEntity>() {
-              { "Kill"  , ActionEntity.Kill }
-            , { "Pickup", ActionEntity.PickUp }
-            , { "Open"  , ActionEntity.Open }
+        {
+            return curr.worldState.misionCompletada == true;
         };
-        #endregion
 
         var plan = Goap.Execute(initial, null, objective, heuristic, actions);
 
@@ -157,166 +362,51 @@ public class Planner : MonoBehaviour
     {
         return new List<GoapAction>()
         {
-            //Ejemplo de como serian las acciones nuevas
-              new GoapAction("Recoger Item/ cuchillo")
+            new GoapAction("Recoger Item")
                 .SetCost(2f)
-                .SetItem(ItemType.Key) //Si no uso items esto lo puedo quitar
-                //No usar mas de un Pre con las lambdas!!! (No hacer .Pre(x => x).Pre(x => x))
-                .Pre((gS)=>
+                .SetItem(ItemType.Key)
+                .Pre((gS) =>
                 {
-                    //Agrego las precondiciones en base a las variables de gs.WorldState
-                    /*return gS.worldState.values.ContainsKey("dead"+ ItemType.Entity.ToString()) &&
-                           gS.worldState.values.ContainsKey("accessible"+ ItemType.Entity.ToString()) &&
-                           gS.worldState.values.ContainsKey("has"+ ItemType.Mace.ToString()) &&
-                            */
-                           //Lo pedido es completarlo de la siguiente manera sin depender del diccionario de values
-                           //(excepto que se usen los items)
-                           return gS.worldState.playerHP > 50 && gS.worldState.cercaDeItem==true&&
-                    gS.worldState.espacioDeInventario>0&&gS.worldState.energia>0;
+                    return gS.worldState.playerHP > 50 && gS.worldState.cercaDeItem == true &&
+                           gS.worldState.espacioDeInventario > 0 && gS.worldState.energia > 0;
                 })
-                //Ejemplo de setteo de Effect
                 .Effect((gS) =>
-                    {
-                       /* gS.worldState.values["dead"+ ItemType.Entity.ToString()] = true;
-                        gS.worldState.values["accessible"+ ItemType.Key.ToString()] = true;
-                        return gS;
-                       */
-                       gS.worldState.espacioDeInventario+=1; gS.worldState.energia-=1;  gS.worldState.tieneArmaEquipada=("Cuchillo");
-                        return gS;
-                    }
-                )
-                , new GoapAction("Atacar")
+                {
+                    gS.worldState.espacioDeInventario += 1;
+                    gS.worldState.energia -= 1;
+                    gS.worldState.tieneArmaEquipada = "Cuchillo";
+                    return gS;
+                }),
+
+            new GoapAction("Atacar")
                 .SetCost(5f)
-                .SetItem (ItemType.Mace)
-                .Pre((gS)=>
-                {
-                    
-                           return gS.worldState.tieneArmaEquipada==("Cuchillo") && gS.worldState.enRangoDeAtaque==true&&
-                    gS.worldState.playerHP>5;
-                })
-                .Effect((gS) =>
-                    {
-                       
-                       gS.worldState.playerHP-=4; gS.worldState.energia-=5;
-                        return gS;
-                    }
-                )
-
-                , new GoapAction("Curarse")
-                .SetCost(3f)
-                .SetItem (ItemType.pocion)
-                .Pre((gS)=>
-                {
-
-                           return gS.worldState.enCombate==false && gS.worldState.tenerPocionDeCuracion==true&&
-                    gS.worldState.playerHP<10;
-                })
-                .Effect((gS) =>
-                    {
-
-                       gS.worldState.playerHP+=4; gS.worldState.energia-=2;
-                        return gS;
-                    }
-                )
-
-                , new GoapAction("Correr")
-                .SetCost(1f)
-                .SetItem (ItemType.PastaFrola)
-                .Pre((gS)=>
-                {
-
-                           return gS.worldState.enUbicacionDeLaMision==false && gS.worldState.enCombate==false&&
-                    gS.worldState.energia>=15;
-                })
-                .Effect((gS) =>
-                    {
-
-                       gS.worldState.enUbicacionDeLaMision=true; gS.worldState.energia-=15; gS.worldState.misionCompletada=true;
-                        return gS;
-                    }
-                )
-
-                , new GoapAction("Lootear")
-                .SetCost(2f)
-                .Pre((gS)=>
-                {
-
-                           return gS.worldState.tenerPocionDeCuracion==false && gS.worldState.espacioDeInventario>=5&&
-                    gS.worldState.energia>=2;
-                })
-                .Effect((gS) =>
-                    {
-
-                       gS.worldState.espacioDeInventario-=5; gS.worldState.energia-=2; ; gS.worldState.tenerPocionDeCuracion=true;
-                        return gS;
-                    }
-                )
-                /*
-            , new GoapAction("Loot")
-                .SetCost(1f)
-                .SetItem(ItemType.Key)
-                .Pre("otherHas"+ ItemType.Key.ToString(), true)
-                .Pre("dead"+ ItemType.Entity.ToString(), true)
-
-                .Effect("accessible"+ ItemType.Key.ToString(), true)
-                .Effect("otherHas"+ ItemType.Key.ToString(), false)
-
-            , new GoapAction("Pickup")
-                .SetCost(2f)
                 .SetItem(ItemType.Mace)
-                .Pre("dead"+ ItemType.Mace.ToString(), false)
-                .Pre("otherHas"+ ItemType.Mace.ToString(), false)
-                .Pre("accessible"+ ItemType.Mace.ToString(), true)
+                .Pre((gS) =>
+                {
+                    return gS.worldState.tieneArmaEquipada == "Cuchillo" && gS.worldState.enRangoDeAtaque == true &&
+                           gS.worldState.playerHP > 5;
+                })
+                .Effect((gS) =>
+                {
+                    gS.worldState.playerHP -= 4;
+                    gS.worldState.energia -= 5;
+                    return gS;
+                }),
 
-                .Effect("accessible"+ ItemType.Mace.ToString(), false)
-                .Effect("has"+ ItemType.Mace.ToString(), true)
-
-            , new GoapAction("Pickup")
-                .SetCost(2f)
-                .SetItem(ItemType.Key)
-//                .Pre("deadKey", false)
-//                .Pre("otherHasKey", false)
-                .Pre("accessible"+ ItemType.Key.ToString(), true)
-
-                .Effect("accessible"+ ItemType.Key.ToString(), false)
-                .Effect("has"+ ItemType.Key.ToString(), true)
-
-            , new GoapAction("Pickup")
-                .SetCost(5f)					//La frola es prioritaria!
-                .SetItem(ItemType.PastaFrola)
-                .Pre("dead"+ ItemType.PastaFrola.ToString(), false)
-                .Pre("otherHas"+ ItemType.PastaFrola.ToString(), false)
-                .Pre("accessible"+ ItemType.PastaFrola.ToString(), true)
-                //.Pre("hasKey",true)
-
-                .Effect("accessible"+ ItemType.PastaFrola.ToString(), false)
-                .Effect("has"+ ItemType.PastaFrola.ToString(), true)
-
-            , new GoapAction("Open")
+            new GoapAction("Curarse")
                 .SetCost(3f)
-                .SetItem(ItemType.Door)
-                .Pre("dead"+ ItemType.Door.ToString(), false)
-                .Pre("has"+ ItemType.Key.ToString(), true)
-
-                .Effect("has"+ ItemType.Key.ToString(), false)
-                .Effect("doorOpen", true)
-                .Effect("dead"+ ItemType.Key.ToString(), true)
-                .Effect("accessible"+ ItemType.PastaFrola.ToString(), true)
-
-                , new GoapAction("Kill")
-                .SetCost(20f)
-                .SetItem(ItemType.Door)
-                .Pre("dead"+ ItemType.Door.ToString(), false)
-                .Pre("has"+ ItemType.Mace.ToString(), true)
-
-                .Effect("doorOpen", true)
-                .Effect("has"+ ItemType.Mace.ToString(), false)
-                .Effect("dead"+ ItemType.Mace.ToString(), true)
-                .Effect("dead"+ ItemType.Door.ToString(), true)
-                .Effect("accessible"+ ItemType.PastaFrola.ToString(), true)
-
-                */
-
+                .SetItem(ItemType.Pocion)
+                .Pre((gS) =>
+                {
+                    return gS.worldState.enCombate == false && gS.worldState.tenerPocionDeCuracion == true &&
+                           gS.worldState.playerHP < 10;
+                })
+                .Effect((gS) =>
+                {
+                    gS.worldState.playerHP += 4;
+                    gS.worldState.energia -= 2;
+                    return gS;
+                })
         };
     }
 

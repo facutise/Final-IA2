@@ -9,8 +9,8 @@ public enum ItemType
 	Entity,
 	Mace,
 	PastaFrola,
-	pocion,
-	cuchillo,
+	Pocion,
+	Cuchillo,
 
 }
 
@@ -45,8 +45,8 @@ public class Item : MonoBehaviour
 		var ent = GetComponent<Entity>();
 		if(ent != null)
         {
-			foreach(var it in ent.RemoveAllitems())
-				it.transform.parent = null;
+			//foreach(var it in ent.RemoveAllitems())
+				//it.transform.parent = null;
 		}
 		Destroy(gameObject);
 	}
