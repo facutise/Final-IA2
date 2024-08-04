@@ -29,7 +29,7 @@ public class Guy : MonoBehaviour
     private void PerformAction(Entity us, Item other, ActionEntity action)
     {
         if (other != _target) return;
-
+        Debug.Log("efhuwehufseuifhse");
         switch (action)
         {
             case ActionEntity.Kill:
@@ -140,7 +140,10 @@ public class Guy : MonoBehaviour
             (success) =>
             {
                 if (success)
+                {
                     PerformAction(_ent, _target, next.Item1);
+                    Debug.Log("efhuwehufseuifhse");
+                }
                 else
                     _fsm.Feed(ActionEntity.FailedStep);
             }
