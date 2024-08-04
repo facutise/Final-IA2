@@ -133,7 +133,7 @@ public class Guy : MonoBehaviour
         _plan = _plan.Skip(1);
 
         _target = next.Item2;
-
+        
         Navigation.instance.TryReach(
             transform,
             _target.transform.position,
@@ -145,6 +145,38 @@ public class Guy : MonoBehaviour
                     _fsm.Feed(ActionEntity.FailedStep);
             }
         );
+        
+        /*
+        var path = AStarNormal<Waypoint>.Run(
+        Navigation.instance.NearestTo(transform.position),
+        Navigation.instance.NearestTo(_target.transform.position),
+        (wa, wb) => Vector3.Distance(wa.transform.position, wb.transform.position),
+        w => w == Navigation.instance.NearestTo(_target.transform.position),
+        w => w.adyacent
+            .Where(a => a.nearbyItems.All(it => it.type != ItemType.Door))
+            .Select(a => new AStarNormal<Waypoint>.Arc(a, Vector3.Distance(a.transform.position, w.transform.position)))
+    );
+
+        if (path == null)
+        {
+            _fsm.Feed(ActionEntity.FailedStep);
+            return;
+        }
+
+        StartCoroutine(FollowPath(path, () => PerformAction(_ent, _target, next.Item1)));*/
+
+    }
+    private IEnumerator FollowPath(IEnumerable<Waypoint> path, Action onComplete)
+    {
+        foreach (var waypoint in path)
+        {
+            while (Vector3.Distance(transform.position, waypoint.transform.position) > 0.1f)
+            {
+                transform.position = Vector3.MoveTowards(transform.position, waypoint.transform.position, Time.deltaTime * 2f);
+                yield return null;
+            }
+        }
+        onComplete();
     }
 
     private void Awake()

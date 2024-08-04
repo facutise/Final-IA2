@@ -29,6 +29,7 @@ public class GoapAction
         Preconditions = delegate { return true; };//FACU PROBANDO
         effects = new Dictionary<string, bool>();
 
+
         //Para que funcione en la mezcla se hizo esto, pero se le podria settear a cada Action su propia logica de effect
         Effects = (s) =>
         {
@@ -38,6 +39,7 @@ public class GoapAction
             }*/
             return s;
         };
+        
     }
 
     public GoapAction SetCost(float cost)

@@ -3,13 +3,212 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using UnityEngine.UI;
+using TMPro;
 
 public class Planner : MonoBehaviour
 {
-   
 
+    public ParticleSystem particlePrefab;
     private readonly List<Tuple<Vector3, Vector3>> _debugRayList = new List<Tuple<Vector3, Vector3>>();
+    public MeshRenderer _renderer;
+    public Material _runMaterial;
+    public Transform chestTransform;
+    public Transform enemyTransform;
+    public Transform knifeTransform;
+    public GameObject playerKnife;
+    public GameObject equippedKnife;
+    public TextMeshPro conversationText;
 
+    private bool isMoving = false;
+    private Queue<IEnumerator> actionQueue = new Queue<IEnumerator>();
+
+    public float contador;
+    public bool StartSequenceBool;
+
+    /*
+    private void MoveTowardsTarget(Transform target)
+    {
+        float step = 5 * Time.deltaTime; // Velocidad del movimiento
+        transform.position = Vector3.MoveTowards(transform.position, target.position, step);
+
+        if (Vector3.Distance(transform.position, target.position) < 0.001f)
+        {
+            isMoving = false;
+        }
+    }
+    void Update()
+    {
+        if (isMoving)
+        {
+            MoveTowardsTarget(chestTransform);
+        }
+    }
+    public void GoToChest()
+    {
+        StartCoroutine(GoToPosition(chestTransform, 10f));
+    }
+
+    public void GoToEnemy()
+    {
+        StartCoroutine(GoToPosition(enemyTransform, 0f, () => Destroy(enemyTransform.gameObject)));
+    }
+
+    public void GoToKnife()
+    {
+        StartCoroutine(GoToPosition(knifeTransform, 0f, () =>
+        {
+            knifeTransform.gameObject.SetActive(false);
+            equippedKnife.SetActive(true);
+        }));
+    }
+
+    public void StartConversation()
+    {
+        StartCoroutine(Conversation());
+    }
+
+    private IEnumerator GoToPosition(Transform target, float waitTime, System.Action onArrival = null)
+    {
+        isMoving = true;
+        yield return new WaitUntil(() => !isMoving);
+
+        if (waitTime > 0)
+        {
+            yield return new WaitForSeconds(waitTime);
+        }
+
+        onArrival?.Invoke();
+    }
+
+    private IEnumerator Conversation()
+    {
+        string[] conversationLines = new string[]
+        {
+            "Hola, ¿cómo estás?",
+            "Estoy bien, ¿y tú?",
+            "Muy bien, gracias.",
+            "Qué bueno, ¿qué has hecho últimamente?",
+            "He estado trabajando en un proyecto de Unity.",
+            "¡Genial! ¿De qué trata?",
+            "Es un juego de aventuras.",
+            "Suena interesante, ¡buena suerte!"
+        };
+
+        for (int i = 0; i < conversationLines.Length; i++)
+        {
+            conversationText.text = conversationLines[i];
+            yield return new WaitForSeconds(1f);
+        }
+
+        conversationText.text = "";
+    }
+    */
+    private void MoveTowardsTarget(Transform target)
+    {
+        float step = 5 * Time.deltaTime; // Velocidad del movimiento
+        transform.position = Vector3.MoveTowards(transform.position, target.position, step);
+
+        if (Vector3.Distance(transform.position, target.position) < 0.001f)
+        {
+            isMoving = false;
+        }
+    }
+
+    void Update()
+    {
+        if (isMoving)
+        {
+            MoveTowardsTarget(chestTransform);
+        }
+        if (StartSequenceBool == true) return;
+
+        contador += Time.deltaTime;
+        if (contador >= 4)
+        {
+            StartSequenceBool = true;
+
+            StartCoroutine(ProcessActions());
+
+        }
+    }
+
+    public void GoToChest()
+    {
+        EnqueueAction(GoToPosition(chestTransform, 10f));
+    }
+
+    public void GoToEnemy()
+    {
+        EnqueueAction(GoToPosition(enemyTransform, 0f, () => Destroy(enemyTransform.gameObject)));
+    }
+
+    public void GoToKnife()
+    {
+        EnqueueAction(GoToPosition(knifeTransform, 0f, () =>
+        {
+            knifeTransform.gameObject.SetActive(false);
+            equippedKnife.SetActive(true);
+        }));
+    }
+
+    public void StartConversation()
+    {
+        EnqueueAction(Conversation());
+    }
+
+    private IEnumerator GoToPosition(Transform target, float waitTime, System.Action onArrival = null)
+    {
+        isMoving = true;
+        yield return new WaitUntil(() => !isMoving);
+
+        if (waitTime > 0)
+        {
+            yield return new WaitForSeconds(waitTime);
+        }
+
+        onArrival?.Invoke();
+    }
+
+    private IEnumerator Conversation()
+    {
+        string[] conversationLines = new string[]
+        {
+            "Hola, ¿cómo estás?",
+            "Estoy bien, ¿y tú?",
+            "Muy bien, gracias.",
+            "Qué bueno, ¿qué has hecho últimamente?",
+            "He estado trabajando en un proyecto de Unity.",
+            "¡Genial! ¿De qué trata?",
+            "Es un juego de aventuras.",
+            "Suena interesante, ¡buena suerte!"
+        };
+
+        for (int i = 0; i < conversationLines.Length; i++)
+        {
+            conversationText.text = conversationLines[i];
+            yield return new WaitForSeconds(1f);
+        }
+
+        conversationText.text = "";
+    }
+
+    private void EnqueueAction(IEnumerator action)
+    {
+        actionQueue.Enqueue(action);
+        if (StartSequenceBool == true)
+        {
+            StartCoroutine(ProcessActions());
+        }
+    }
+
+    private IEnumerator ProcessActions()
+    {
+        while (actionQueue.Count > 0)
+        {
+            yield return StartCoroutine(actionQueue.Dequeue());
+        }
+    }
     private void Start()
     {
         StartCoroutine(Plan());
@@ -139,7 +338,7 @@ public class Planner : MonoBehaviour
         { "Recoger Item/ cuchillo", ActionEntity.Open },
         { "Atacar", ActionEntity.Kill },
         { "Curarse", ActionEntity.Success },
-        { "Correr", ActionEntity.Success },
+        { "Correr", ActionEntity.MoveToPastaFrola },
         { "Lootear", ActionEntity.PickUp }
     };
 
@@ -197,14 +396,17 @@ public class Planner : MonoBehaviour
                 }),
             new GoapAction("Correr")
                 .SetCost(4f)
-                .SetItem(ItemType.PastaFrola)
                 .Pre(gS => gS.worldState.enUbicacionDeLaMision/* && !gS.worldState.enCombate && gS.worldState.energia >= 15*/)
                 .Effect(gS =>
                 {
                     gS.worldState.enUbicacionDeLaMision = true;
                     gS.worldState.energia -= 15;
                     gS.worldState.misionCompletada = true;
+                    //StartConversation();
+                    GoToChest();
+                    //_renderer.material= _runMaterial;
                     return gS;
+
                 }),
             new GoapAction("Lootear")
                 .SetCost(1f)
@@ -216,6 +418,13 @@ public class Planner : MonoBehaviour
                     gS.worldState.energia -= 2;
                     gS.worldState.tenerPocionDeCuracion = true;
                     gS.worldState.enUbicacionDeLaMision=true;
+                    //var particles = Instantiate(particlePrefab, Vector3.zero, Quaternion.identity);
+                    //particles.Play();
+                    //GoToChest();
+                    //GoToEnemy(); maso
+                    //GoToKnife();
+                    StartConversation();
+
                     return gS;
                 })
         };
@@ -232,6 +441,18 @@ public class Planner : MonoBehaviour
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
 /*
     private readonly List<Tuple<Vector3, Vector3>> _debugRayList = new List<Tuple<Vector3, Vector3>>();
 
