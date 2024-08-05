@@ -82,10 +82,10 @@ public class Pathfinder : MonoBehaviour
     {
         for (float f = 0; f < 1; f += Time.deltaTime / moveTime)
         {
-            yield return null;
             transform.position = Vector3.Lerp(
                 from.transform.position, to.transform.position, f)
                 + offset;
+            yield return null;
         }
     }
 

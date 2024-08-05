@@ -8,7 +8,6 @@ using TMPro;
 
 public class Planner : MonoBehaviour
 {
-
     public ParticleSystem particlePrefab;
     private readonly List<Tuple<Vector3, Vector3>> _debugRayList = new List<Tuple<Vector3, Vector3>>();
     public MeshRenderer _renderer;
@@ -16,7 +15,6 @@ public class Planner : MonoBehaviour
     public Transform chestTransform;
     public Transform enemyTransform;
     public Transform knifeTransform;
-    public GameObject playerKnife;
     public GameObject equippedKnife;
     public TextMeshPro conversationText;
 
@@ -25,117 +23,203 @@ public class Planner : MonoBehaviour
 
     public float contador;
     public bool StartSequenceBool;
+    public Transform currentTarget;
 
-    /*
+    [SerializeField] PhysicalNodeGrid physicalNodeGrid;
+    [SerializeField] Pathfinder pathfinder;
+    [SerializeField] Character character; // Suponiendo que Character es el componente que maneja la velocidad
+
+    public Node currentTargetNode;
+
+
+    MaterialPropertyBlock block;
+
+
+    public Node lastNode;
+    public Node clickNode;
+
     private void MoveTowardsTarget(Transform target)
     {
-        float step = 5 * Time.deltaTime; // Velocidad del movimiento
-        transform.position = Vector3.MoveTowards(transform.position, target.position, step);
+        // float step = 5 * Time.deltaTime; // Velocidad del movimiento
+        //transform.position = Vector3.MoveTowards(transform.position, target.position, step);
+
+        currentTargetNode = physicalNodeGrid.GetClosest(target.position);
+        if (currentTargetNode != null && isMoving)
+        {
+            StartCoroutine(PathfindAndMove());
+        }
 
         if (Vector3.Distance(transform.position, target.position) < 0.001f)
         {
             isMoving = false;
         }
     }
-    void Update()
-    {
-        if (isMoving)
-        {
-            MoveTowardsTarget(chestTransform);
-        }
-    }
-    public void GoToChest()
-    {
-        StartCoroutine(GoToPosition(chestTransform, 10f));
-    }
-
-    public void GoToEnemy()
-    {
-        StartCoroutine(GoToPosition(enemyTransform, 0f, () => Destroy(enemyTransform.gameObject)));
-    }
-
-    public void GoToKnife()
-    {
-        StartCoroutine(GoToPosition(knifeTransform, 0f, () =>
-        {
-            knifeTransform.gameObject.SetActive(false);
-            equippedKnife.SetActive(true);
-        }));
-    }
-
-    public void StartConversation()
-    {
-        StartCoroutine(Conversation());
-    }
-
-    private IEnumerator GoToPosition(Transform target, float waitTime, System.Action onArrival = null)
+    // Corutina que usa Pathfinder para encontrar y seguir un camino
+    private IEnumerator PathfindAndMove()
     {
         isMoving = true;
-        yield return new WaitUntil(() => !isMoving);
+        pathfinder.current = physicalNodeGrid.GetClosest(transform.position);
+        pathfinder.target = currentTargetNode;
+        pathfinder.path = pathfinder.CallPathfind(currentTargetNode);
 
-        if (waitTime > 0)
+        if (pathfinder.path.Count > 0)
         {
-            yield return new WaitForSeconds(waitTime);
+            pathfinder.current = pathfinder.path[0];
+            int targetIndex = 1;
+
+            while (targetIndex < pathfinder.path.Count)
+            {
+                Node targetNode = pathfinder.path[targetIndex];
+                while (Vector3.Distance(targetNode.transform.position, transform.position) > 0.1f)
+                {
+                    Vector3 direction = (targetNode.transform.position - transform.position).normalized;
+                    character.velocity = direction * 2; // Asumiendo que `movementSpeed` es parte del script `Character`
+                    yield return null;
+                }
+
+                targetIndex++;
+                pathfinder.current = targetNode;
+            }
+
+            character.velocity = Vector3.zero;
         }
 
-        onArrival?.Invoke();
-    }
-
-    private IEnumerator Conversation()
-    {
-        string[] conversationLines = new string[]
+        clickNode = physicalNodeGrid.GetClosest(currentTarget.transform.position);
+        if (clickNode != null)
         {
-            "Hola, ¿cómo estás?",
-            "Estoy bien, ¿y tú?",
-            "Muy bien, gracias.",
-            "Qué bueno, ¿qué has hecho últimamente?",
-            "He estado trabajando en un proyecto de Unity.",
-            "¡Genial! ¿De qué trata?",
-            "Es un juego de aventuras.",
-            "Suena interesante, ¡buena suerte!"
-        };
 
-        for (int i = 0; i < conversationLines.Length; i++)
-        {
-            conversationText.text = conversationLines[i];
-            yield return new WaitForSeconds(1f);
+            PathMove();
         }
+        /*
+        pathfinder.target = currentTargetNode;
+        pathfinder.path = pathfinder.CallPathfind(currentTargetNode);
+        pathfinder.current = physicalNodeGrid.GetClosest(transform.position);
 
-        conversationText.text = "";
-    }
-    */
-    private void MoveTowardsTarget(Transform target)
-    {
-        float step = 5 * Time.deltaTime; // Velocidad del movimiento
-        transform.position = Vector3.MoveTowards(transform.position, target.position, step);
-
-        if (Vector3.Distance(transform.position, target.position) < 0.001f)
+        if (pathfinder.path.Count > 0)
         {
+            int targetIndex = 0;
+
+            while (targetIndex < pathfinder.path.Count)
+            {
+                Node targetNode = pathfinder.path[targetIndex];
+                while (Vector3.Distance(targetNode.transform.position, transform.position) > 0.1f)
+                {
+                    Vector3 direction = (targetNode.transform.position - transform.position).normalized;
+                    character.velocity = direction * 300; // Ajusta la velocidad según sea necesario
+                    yield return null;
+                }
+
+                targetIndex++;
+            }
+
+            character.velocity = Vector3.zero;
             isMoving = false;
         }
+
+        yield return null;*/
+
+
+
+    }
+
+    private void PathMove()
+    {
+        if (pathfinder.current == null)
+        {
+        }
+
+        lastNode = physicalNodeGrid.GetClosest(/*clickNode.WorldPosition*/currentTargetNode.WorldPosition);//posible error
+        pathfinder.current = physicalNodeGrid.GetClosest(transform.position);
+
+        pathfinder.target = lastNode;
+        pathfinder.path = pathfinder.CallPathfind(lastNode);
+
+        if (pathfinder.path.Count > 0)
+        {
+            pathfinder.current = pathfinder.path[0];
+        }
+        else
+        {
+            return;
+        }
+
+        StartCoroutine(FollowPathAndCheckForPlayer());
+        pathfinder.UpdateTarget(lastNode);
+    }
+
+    private IEnumerator FollowPathAndCheckForPlayer()
+    {
+        isMoving = true;
+        int targetIndex = 1;
+
+        while (targetIndex < pathfinder.path.Count)
+        {
+            Node targetNode = pathfinder.path[targetIndex];
+
+            while (Vector3.Distance(targetNode.transform.position, transform.position) > 1f)
+            {
+                Vector3 dir = (targetNode.transform.position - transform.position).normalized;
+                character.velocity = dir * 2;
+
+                yield return null;
+            }
+
+            character.velocity = Vector3.zero;
+
+            if (targetIndex < pathfinder.path.Count - 1)
+            {
+                targetIndex++;
+                pathfinder.current = pathfinder.path[targetIndex - 1];
+            }
+            else
+            {
+                pathfinder.path.Clear();
+                pathfinder.current = null;
+                pathfinder.target = null;
+                lastNode = null;
+                isMoving = false;
+                yield break;
+            }
+        }
+
+        character.velocity = Vector3.zero;
+        isMoving = false;
     }
 
     void Update()
     {
         if (isMoving)
         {
-            MoveTowardsTarget(chestTransform);
+            MoveTowardsTarget(currentTarget); // Asume que siempre va al cofre cuando está en movimiento
         }
-        if (StartSequenceBool == true) return;
+
+        if (StartSequenceBool) return;
 
         contador += Time.deltaTime;
-        if (contador >= 4)
+        if (contador >= 4 /*&& actionQueue.Count<= 5*/)
         {
             StartSequenceBool = true;
-
             StartCoroutine(ProcessActions());
 
         }
     }
 
+    public void EnqueHeal()
+    {
+        EnqueueAction(Heal());
+    }
+
+    public IEnumerator Heal()
+    {
+        var particles = Instantiate(particlePrefab, Vector3.zero, Quaternion.identity);
+        particles.Play();
+        yield return null;
+    }
+
     public void GoToChest()
     {
         EnqueueAction(GoToPosition(chestTransform, 10f));
+        
     }
 
     public void GoToEnemy()
@@ -145,6 +229,7 @@ public class Planner : MonoBehaviour
 
     public void GoToKnife()
     {
+       
         EnqueueAction(GoToPosition(knifeTransform, 0f, () =>
         {
             knifeTransform.gameObject.SetActive(false);
@@ -157,8 +242,10 @@ public class Planner : MonoBehaviour
         EnqueueAction(Conversation());
     }
 
-    private IEnumerator GoToPosition(Transform target, float waitTime, System.Action onArrival = null)
+    private IEnumerator GoToPosition(Transform target, float waitTime, Action onArrival = null)
     {
+
+        currentTarget = target;
         isMoving = true;
         yield return new WaitUntil(() => !isMoving);
 
@@ -169,7 +256,6 @@ public class Planner : MonoBehaviour
 
         onArrival?.Invoke();
     }
-
     private IEnumerator Conversation()
     {
         string[] conversationLines = new string[]
@@ -196,7 +282,7 @@ public class Planner : MonoBehaviour
     private void EnqueueAction(IEnumerator action)
     {
         actionQueue.Enqueue(action);
-        if (StartSequenceBool == true)
+        if (StartSequenceBool == true && actionQueue.Count == 1)
         {
             StartCoroutine(ProcessActions());
         }
@@ -288,39 +374,7 @@ public class Planner : MonoBehaviour
         {
             return curr.worldState.misionCompletada;
         };
-        /*
 
-        var plan = Goap.Execute(initial, null, objective, heuristic, actions);
-
-        if (plan == null)
-            Debug.Log("Couldn't plan");
-        else
-        {
-            var actDict = new Dictionary<string, ActionEntity>
-            {
-                { "Recoger Item/ cuchillo", ActionEntity.PickUp },
-                { "Atacar", ActionEntity.Kill },
-                { "Curarse", ActionEntity.Success },
-                { "Correr", ActionEntity.Success },
-                { "Lootear", ActionEntity.PickUp }
-            };
-
-            GetComponent<Guy>().ExecutePlan(
-                plan
-                .Select(a =>
-                {
-                    Item i2 = everything.FirstOrDefault(i => i.type == a.item);
-                    if (actDict.ContainsKey(a.Name) && i2 != null)
-                    {
-                        return Tuple.Create(actDict[a.Name], i2);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }).Where(a => a != null).ToList()
-            );
-        }*/
         var plan = Goap.Execute(initial, null, objective, heuristic, actions);
 
         if (plan == null)
@@ -331,6 +385,12 @@ public class Planner : MonoBehaviour
             foreach (var action in plan)
             {
                 Debug.Log("Action: " + action.Name);
+                if (action.Name == "Recoger Item/ cuchillo") GoToKnife();
+                else if (action.Name == "Atacar") GoToEnemy();
+                else if (action.Name == "Curarse") EnqueHeal();
+                else if (action.Name == "Cofre") GoToChest();
+                else if (action.Name == "Conversar") GoToKnife(); //StartConversation();
+
             }
 
             var actDict = new Dictionary<string, ActionEntity>
@@ -338,8 +398,8 @@ public class Planner : MonoBehaviour
         { "Recoger Item/ cuchillo", ActionEntity.Open },
         { "Atacar", ActionEntity.Kill },
         { "Curarse", ActionEntity.Success },
-        { "Correr", ActionEntity.MoveToPastaFrola },
-        { "Lootear", ActionEntity.PickUp }
+        { "Cofre", ActionEntity.MoveToPastaFrola },
+        { "Conversar", ActionEntity.PickUp }
     };
 
             GetComponent<Guy>().ExecutePlan(
@@ -364,7 +424,7 @@ public class Planner : MonoBehaviour
         return new List<GoapAction>
         {
             new GoapAction("Recoger Item/ cuchillo")
-                .SetCost(2f)
+                .SetCost(20f)
                 .SetItem(ItemType.Key)
                 .Pre(gS => gS.worldState.playerHP > 50 )
                 .Effect(gS =>
@@ -372,29 +432,34 @@ public class Planner : MonoBehaviour
                     gS.worldState.espacioDeInventario += 1;
                     gS.worldState.energia -= 1;
                     gS.worldState.tieneArmaEquipada = "Cuchillo";
+                    //GoToKnife();
+                    Debug.Log("A");
                     return gS;
                 }),
             new GoapAction("Atacar")
-                .SetCost(5f)
+                .SetCost(30f)
                 .SetItem(ItemType.Mace)
                 .Pre(gS => /*gS.worldState.tieneArmaEquipada == "Cuchillo" && gS.worldState.enRangoDeAtaque &&*/ gS.worldState.playerHP > 5)
                 .Effect(gS =>
                 {
                     gS.worldState.playerHP -= 4;
                     gS.worldState.energia -= 5;
+                    //GoToEnemy();
+                    Debug.Log("b");
                     return gS;
                 }),
             new GoapAction("Curarse")
                 .SetCost(3f)
-                .SetItem(ItemType.Pocion)
                 .Pre(gS => /*!gS.worldState.enCombate && gS.worldState.tenerPocionDeCuracion && */gS.worldState.playerHP < 10)
                 .Effect(gS =>
                 {
                     gS.worldState.playerHP += 4;
                     gS.worldState.energia -= 2;
+                    //EnqueHeal();
+                    Debug.Log("c");
                     return gS;
                 }),
-            new GoapAction("Correr")
+            new GoapAction("Cofre")
                 .SetCost(4f)
                 .Pre(gS => gS.worldState.enUbicacionDeLaMision/* && !gS.worldState.enCombate && gS.worldState.energia >= 15*/)
                 .Effect(gS =>
@@ -403,12 +468,13 @@ public class Planner : MonoBehaviour
                     gS.worldState.energia -= 15;
                     gS.worldState.misionCompletada = true;
                     //StartConversation();
-                    GoToChest();
+                    //GoToChest();
+                    Debug.Log("d");
                     //_renderer.material= _runMaterial;
                     return gS;
 
                 }),
-            new GoapAction("Lootear")
+            new GoapAction("Conversar")
                 .SetCost(1f)
                 //.SetItem(ItemType.Pocion) WTF??!!!!
                 .Pre(gS => /*!gS.worldState.tenerPocionDeCuracion && gS.worldState.espacioDeInventario >= 5 && */gS.worldState.energia >= 2)
@@ -418,12 +484,9 @@ public class Planner : MonoBehaviour
                     gS.worldState.energia -= 2;
                     gS.worldState.tenerPocionDeCuracion = true;
                     gS.worldState.enUbicacionDeLaMision=true;
-                    //var particles = Instantiate(particlePrefab, Vector3.zero, Quaternion.identity);
-                    //particles.Play();
-                    //GoToChest();
-                    //GoToEnemy(); maso
-                    //GoToKnife();
-                    StartConversation();
+
+                    //StartConversation();
+                    Debug.Log("e");
 
                     return gS;
                 })
@@ -441,6 +504,7 @@ public class Planner : MonoBehaviour
     }
 
 }
+
 
 
 
