@@ -44,6 +44,14 @@ public struct WorldState
     public bool enCombate;//flase
     public bool enUbicacionDeLaMision;//faalse
     public bool misionCompletada;//false
+
+    public bool IHaveChest;
+    public int GoldQuantity;
+    public string TengoArma;
+    public float Fervor;
+    public bool Password;
+
+
    // public Dictionary<string, bool> values; //Eliminar y utilizar todas las variables como playerHP
 
     //MUY IMPORTANTE TENER UN CLONE PARA NO TENER REFENCIAS A LO VIEJO
@@ -61,6 +69,11 @@ public struct WorldState
             enCombate = this.enCombate,
             enUbicacionDeLaMision = this.enUbicacionDeLaMision,
             misionCompletada = this.misionCompletada,
+            IHaveChest = this.IHaveChest,
+            GoldQuantity = this.GoldQuantity,
+            TengoArma=this.TengoArma,
+            Fervor = this.Fervor,
+            Password = this.Password,
 
             //values = this.values.ToDictionary(kv => kv.Key, kv => kv.Value) //Eliminar!!
         };
