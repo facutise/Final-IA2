@@ -211,7 +211,8 @@ public class Planner : MonoBehaviour
 
     public IEnumerator Heal()
     {
-        var particles = Instantiate(particlePrefab, this.transform.position, Quaternion.identity);
+        Quaternion rotation = Quaternion.Euler(-90, 0, 0);
+        var particles = Instantiate(particlePrefab, this.transform.position, rotation);
         particles.Play();
         yield return null;
     }
