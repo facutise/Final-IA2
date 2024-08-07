@@ -81,7 +81,6 @@ public class Guy : MonoBehaviour
                 if (success)
                 {
                     Debug.Log("Reached PastaFrola using A*");
-                    // Aquí puedes añadir más lógica si es necesario
                     _fsm.Feed(ActionEntity.NextStep);
                 }
                 else
@@ -95,6 +94,7 @@ public class Guy : MonoBehaviour
 
     private void PerformKill(Entity us, Item other)
     {
+        /*
         var mace = _ent.items.FirstOrDefault(it => it.type == ItemType.Mace);
         if (mace)
         {
@@ -105,11 +105,20 @@ public class Guy : MonoBehaviour
         }
         else
             _fsm.Feed(ActionEntity.FailedStep);
+        */
+        Debug.Log($"Performing PickUp on {other.name}");
+        _ent.AddItem(other);
+        SpawnLootParticles(other.transform.position);
+        var particles = Instantiate(particlePrefab, Vector3.zero, Quaternion.identity);
+        particles.Play();
+        _fsm.Feed(ActionEntity.NextStep);
+        // Ejecutar partículas al lootear
+
     }
 
     private void PerformOpen(Entity us, Item other)
     {
-        var key = _ent.items.FirstOrDefault(it => it.type == ItemType.Key);
+        /*var key = _ent.items.FirstOrDefault(it => it.type == ItemType.Key);
         var door = other.GetComponent<Door>();
         if (door && key)
         {
@@ -119,8 +128,16 @@ public class Guy : MonoBehaviour
         }
         else
             _fsm.Feed(ActionEntity.FailedStep);
+        */
+        Debug.Log($"Performing PickUp on {other.name}");
+        _ent.AddItem(other);
+        SpawnLootParticles(other.transform.position);
+        var particles = Instantiate(particlePrefab, Vector3.zero, Quaternion.identity);
+        particles.Play();
+        _fsm.Feed(ActionEntity.NextStep);
+        // Ejecutar partículas al lootear
     }
-    
+
     public void NextStep()
     {
         if (_plan == null || !_plan.Any())

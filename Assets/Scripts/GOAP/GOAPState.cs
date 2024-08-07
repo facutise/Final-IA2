@@ -34,17 +34,7 @@ public class GoapState
 //Aca hay una mezcla de lo  anterior con lo nuevo, no necesariamente tiene que haber un diccionario aca adentro
 public struct WorldState
 {
-    public float playerHP;
-    public bool cercaDeItem;//true
-    public int espacioDeInventario;//1
-    public int energia;//15
-    public bool enRangoDeAtaque;//false
-    public string tieneArmaEquipada;//none
-    public bool tenerPocionDeCuracion;//false
-    public bool enCombate;//flase
-    public bool enUbicacionDeLaMision;//faalse
-    public bool misionCompletada;//false
-
+   
     public bool IHaveChest;
     public int GoldQuantity;
     public string TengoArma;
@@ -59,23 +49,14 @@ public struct WorldState
     {
         return new WorldState()
         {
-            playerHP = this.playerHP,
-            cercaDeItem = this.cercaDeItem,
-            espacioDeInventario = this.espacioDeInventario, 
-            energia = this.energia,
-            enRangoDeAtaque = this.enRangoDeAtaque,
-            tieneArmaEquipada = this.tieneArmaEquipada,
-            tenerPocionDeCuracion = this.tenerPocionDeCuracion,
-            enCombate = this.enCombate,
-            enUbicacionDeLaMision = this.enUbicacionDeLaMision,
-            misionCompletada = this.misionCompletada,
+           
             IHaveChest = this.IHaveChest,
             GoldQuantity = this.GoldQuantity,
             TengoArma=this.TengoArma,
             Fervor = this.Fervor,
             Password = this.Password,
 
-            //values = this.values.ToDictionary(kv => kv.Key, kv => kv.Value) //Eliminar!!
+            
         };
     }
 }

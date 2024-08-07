@@ -14,6 +14,7 @@ public class Planner : MonoBehaviour
     public Material _runMaterial;
     public Transform chestTransform;
     public Transform enemyTransform;
+    public GameObject enemyGO;
     public Transform knifeTransform;
     public GameObject equippedKnife;
     public TextMeshPro conversationText;
@@ -225,7 +226,7 @@ public class Planner : MonoBehaviour
 
     public void GoToEnemy()
     {
-        EnqueueAction(GoToPosition(enemyTransform, 0f, () => Destroy(enemyTransform.gameObject)));
+        EnqueueAction(GoToPosition(enemyTransform, 0f, () => Destroy(enemyGO.gameObject)));
     }
 
     public void GoToKnife()
@@ -261,14 +262,14 @@ public class Planner : MonoBehaviour
     {
         string[] conversationLines = new string[]
         {
-            "Hola, ¿cómo estás?",
-            "Estoy bien, ¿y tú?",
-            "Muy bien, gracias.",
-            "Qué bueno, ¿qué has hecho últimamente?",
-            "He estado trabajando en un proyecto de Unity.",
-            "¡Genial! ¿De qué trata?",
-            "Es un juego de aventuras.",
-            "Suena interesante, ¡buena suerte!"
+            "Hola, dejame llevarme el cofre",
+            "No",
+            "Tengo Oro para sobornarte",
+            "No tiene más sentido que yo me lleve el cofre?",
+            "....",
+            "Ok, me das pena, llevátelo y dame el oro",
+            "flama",
+            "que tengas buen día"
         };
 
         for (int i = 0; i < conversationLines.Length; i++)
@@ -338,24 +339,14 @@ public class Planner : MonoBehaviour
         {
             worldState = new WorldState
             {
-                /*playerHP = 88,
-                cercaDeItem = true,
-                espacioDeInventario = 1,
-                energia = 15,
-                enRangoDeAtaque = false,
-                tieneArmaEquipada = "none",
-                tenerPocionDeCuracion = false,
-                enCombate = false,
-                enUbicacionDeLaMision = false,
-                misionCompletada = false,
-                */
+                
                 IHaveChest = false,
                 GoldQuantity = 0,
                 TengoArma = "",
                 Fervor = 3F,
                 Password = false
 
-
+                //setting provider
             }
         };
 
@@ -365,7 +356,7 @@ public class Planner : MonoBehaviour
         {
             worldState = new WorldState
             {
-                /*misionCompletada = true*/
+               
                 IHaveChest = true,
             }
         };
@@ -373,7 +364,7 @@ public class Planner : MonoBehaviour
         Func<GoapState, float> heuristic = (curr) =>
         {
             int count = 0;
-            if (/*!curr.worldState.misionCompletada*/!curr.worldState.IHaveChest)
+            if (!curr.worldState.IHaveChest)
             {
                 count++;
             }
@@ -382,7 +373,7 @@ public class Planner : MonoBehaviour
 
         Func<GoapState, bool> objective = (curr) =>
         {
-            return /*curr.worldState.misionCompletada;*/curr.worldState.IHaveChest;
+            return curr.worldState.IHaveChest;
         };
 
         var plan = Goap.Execute(initial, null, objective, heuristic, actions);
@@ -397,10 +388,10 @@ public class Planner : MonoBehaviour
                 Debug.Log("Action: " + action.Name);
                 if (action.Name == "Recoger Cuchillo") GoToKnife();
                 else if (action.Name == "Atacar") GoToEnemy();
-                else if (action.Name == "Obtener Oro") EnqueHeal();
+                else if (action.Name == "Obtener Oro") EnqueHeal();//GoToKnife();/*Descomentar esta función y comentar la actual para probar el otro recorrido*/
                 else if (action.Name == "Cofre") GoToChest();
-                else if (action.Name == "Sobornar") StartConversation();
-
+                else if (action.Name == "Sobornar") StartConversation(); //GoToEnemy();/*Descomentar esta función y comentar la actual para probar el otro recorrido*/
+                // o cambiar los costos
             }
 
             var actDict = new Dictionary<string, ActionEntity>
@@ -408,7 +399,7 @@ public class Planner : MonoBehaviour
         { "Recoger Cuchillo", ActionEntity.Open },
         { "Atacar", ActionEntity.Kill },
         { "Obtener Oro", ActionEntity.Success },
-        { "Cofre", ActionEntity.MoveToPastaFrola },
+        { "Cofre", ActionEntity.MoveToPastaFrola},
         { "Sobornar", ActionEntity.PickUp }
     };
 
@@ -435,30 +426,21 @@ public class Planner : MonoBehaviour
         {
             new GoapAction("Recoger Cuchillo")
                 .SetCost(4f)
-                .SetItem(ItemType.Key)
-                .Pre(gS => /*gS.worldState.playerHP > 50*/ gS.worldState.TengoArma=="")
+               
+                .Pre(gS => gS.worldState.TengoArma=="")
                 .Effect(gS =>
                 {
-                   /* gS.worldState.espacioDeInventario += 1;
-                    gS.worldState.energia -= 1;
-                    gS.worldState.tieneArmaEquipada = "Cuchillo";
-                    //GoToKnife();
-                    Debug.Log("A")*/
                     
-                    gS.worldState.TengoArma="Cuchillo"
-                    ;
+                    gS.worldState.TengoArma="Cuchillo";
+                    
                     return gS;
                 }),
             new GoapAction("Atacar")
                 .SetCost(4f)
-                .SetItem(ItemType.Mace)
-                .Pre(gS => /*gS.worldState.playerHP > 5*/ gS.worldState.TengoArma=="Cuchilo")
+                .Pre(gS => gS.worldState.TengoArma=="Cuchillo")
                 .Effect(gS =>
                 {
-                    /*gS.worldState.playerHP -= 4;
-                    gS.worldState.energia -= 5;
-                    //GoToEnemy();
-                    Debug.Log("b");*/
+                    
 
                       gS.worldState.Password=true;
                       gS.worldState.TengoArma="";
@@ -468,13 +450,10 @@ public class Planner : MonoBehaviour
                 }),
             new GoapAction("Obtener Oro")
                 .SetCost(1f)
-                .Pre(gS => /*gS.worldState.playerHP < 10*/   gS.worldState.Fervor==3f)
+                .Pre(gS =>  gS.worldState.Fervor==3f)
                 .Effect(gS =>
                 {
-                   /* gS.worldState.playerHP += 4;
-                    gS.worldState.energia -= 2;
-                    //EnqueHeal();
-                    Debug.Log("c");*/
+                  
 
                       gS.worldState.GoldQuantity=16;
 
@@ -482,37 +461,19 @@ public class Planner : MonoBehaviour
                 }),
             new GoapAction("Cofre")
                 .SetCost(2f)
-                .Pre(gS => /*gS.worldState.enUbicacionDeLaMision*/   gS.worldState.Password==true )
+                .Pre(gS =>    gS.worldState.Password==true )
                 .Effect(gS =>
                 {
-                   /* gS.worldState.enUbicacionDeLaMision = true;
-                    gS.worldState.energia -= 15;
-                    gS.worldState.misionCompletada = true;
-                    //StartConversation();
-                    //GoToChest();
-                    Debug.Log("d");
-                    //_renderer.material= _runMaterial;
-                   */
+                   
                      gS.worldState.IHaveChest=true;
                     return gS;
 
                 }),
             new GoapAction("Sobornar")
                 .SetCost(2f)
-                //.SetItem(ItemType.Pocion) WTF??!!!!
-                .Pre(gS =>/*gS.worldState.energia >= 2*/   gS.worldState.GoldQuantity>=15 )
+                .Pre(gS =>   gS.worldState.GoldQuantity>=15 )
                 .Effect(gS =>
                 {
-                    /*
-                    gS.worldState.espacioDeInventario -= 5;
-                    gS.worldState.energia -= 2;
-                    gS.worldState.tenerPocionDeCuracion = true;
-                    gS.worldState.enUbicacionDeLaMision=true;
-
-                    //StartConversation();
-                    Debug.Log("e");
-                    */
-
                       gS.worldState.Password =true;
 
                     return gS;
